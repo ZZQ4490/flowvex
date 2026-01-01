@@ -18,6 +18,8 @@ export const WorkflowEditor: React.FC = () => {
     selectNode,
     undo,
     redo,
+    undoStack,
+    redoStack,
     isExecuting,
     stopExecution,
     runWorkflow,
@@ -82,7 +84,7 @@ export const WorkflowEditor: React.FC = () => {
 
   if (!workflow) {
     return (
-      <div className="h-full flex items-center justify-center bg-gray-100">
+      <div className="h-full flex items-center justify-center" style={{ background: 'var(--canvas-bg)' }}>
         <div className="text-center">
           <div className="w-20 h-20 mx-auto mb-4 bg-gray-200 rounded-2xl flex items-center justify-center">
             <Icon name="MousePointerClick" size={40} className="text-gray-400" />
@@ -99,55 +101,77 @@ export const WorkflowEditor: React.FC = () => {
   }
 
   return (
-    <div className="h-full flex flex-col bg-gray-100">
+    <div className="h-full flex flex-col" style={{ background: 'var(--canvas-bg)' }}>
       {/* Editor Toolbar */}
-      <div className="h-12 bg-white border-b border-gray-200 flex items-center justify-between px-4 flex-shrink-0">
-        <div className="flex items-center gap-3">
+      <div className="h-12 bg-white border-b border-gray-200 flex items-center justify-between px-4 flex-shrink-0 shadow-sm">
+        <div className="flex items-center gap-2">
+          {/* Node Palette Toggle */}
           <button
             onClick={() => setShowNodePalette(!showNodePalette)}
             className={`p-2 rounded-lg transition-colors ${
-              showNodePalette ? 'bg-indigo-100 text-indigo-600' : 'hover:bg-gray-100 text-gray-600'
+              showNodePalette 
+                ? 'bg-primary-50 text-primary-600' 
+                : 'hover:bg-gray-100 text-gray-500'
             }`}
             title="节点面板"
           >
             <Icon name="Layers" size={18} />
           </button>
           
-          <div className="w-px h-6 bg-gray-200" />
+          <div className="w-px h-6 bg-gray-200 mx-1" />
           
-          <div className="flex items-center gap-1">
+          {/* Undo/Redo */}
+          <div className="flex items-center gap-0.5">
             <button
               onClick={undo}
-              className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg disabled:opacity-30"
+              disabled={undoStack.length === 0}
+              className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               title="撤销 (Ctrl+Z)"
             >
               <Icon name="Undo2" size={18} />
             </button>
             <button
               onClick={redo}
-              className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg disabled:opacity-30"
+              disabled={redoStack.length === 0}
+              className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               title="重做 (Ctrl+Y)"
             >
               <Icon name="Redo2" size={18} />
             </button>
           </div>
+
+          <div className="w-px h-6 bg-gray-200 mx-1" />
+
+          {/* Workflow Info */}
+          <div className="flex items-center gap-2 px-2">
+            <span className="text-sm font-medium text-gray-700">{workflow.name}</span>
+            <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+              workflow.status === 'published'
+                ? 'bg-emerald-100 text-emerald-700'
+                : 'bg-gray-100 text-gray-600'
+            }`}>
+              {workflow.status === 'published' ? '已发布' : '草稿'}
+            </span>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Save */}
           <button
             onClick={handleSave}
-            className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg flex items-center gap-1.5"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <Icon name="Save" size={16} />
             保存
           </button>
           
+          {/* Run */}
           <button
             onClick={handleRun}
-            className={`px-4 py-1.5 text-sm text-white rounded-lg flex items-center gap-1.5 ${
+            className={`flex items-center gap-1.5 px-4 py-1.5 text-sm text-white rounded-lg transition-colors font-medium ${
               isExecuting 
                 ? 'bg-red-500 hover:bg-red-600' 
-                : 'bg-indigo-600 hover:bg-indigo-700'
+                : 'bg-primary-600 hover:bg-primary-700 shadow-sm shadow-primary-600/25'
             }`}
           >
             {isExecuting ? (

@@ -45,7 +45,7 @@ export const FloatingNodePalette: React.FC<FloatingNodePaletteProps> = ({
     setDraggingNode(`${node.type}-${node.label}`);
     
     const dragImage = document.createElement('div');
-    dragImage.className = 'fixed pointer-events-none bg-white rounded-lg shadow-xl border-2 border-blue-400 px-3 py-2 flex items-center gap-2';
+    dragImage.className = 'fixed pointer-events-none bg-white rounded-lg shadow-xl border-2 border-primary-400 px-3 py-2 flex items-center gap-2';
     dragImage.style.cssText = 'position: absolute; top: -1000px; left: -1000px;';
     dragImage.innerHTML = `
       <div class="w-6 h-6 rounded flex items-center justify-center" style="background-color: ${node.color}">
@@ -70,24 +70,23 @@ export const FloatingNodePalette: React.FC<FloatingNodePaletteProps> = ({
   };
 
   return (
-    <div 
-      className="absolute left-4 top-4 z-30 w-72 max-h-[calc(100%-32px)] bg-white rounded-xl shadow-xl border border-gray-200 flex flex-col animate-in slide-in-from-left-2 duration-200"
-    >  {/* Header */}
-      <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-          <Icon name="Layers" size={20} className="text-indigo-500" />
-          节点面板
+    <div className="absolute left-4 top-4 z-30 w-72 max-h-[calc(100%-32px)] bg-white rounded-xl shadow-xl border border-gray-200 flex flex-col overflow-hidden">
+      {/* Header */}
+      <div className="p-4 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+        <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+          <Icon name="Layers" size={18} className="text-primary-500" />
+          节点
         </h2>
         <button
           onClick={onClose}
           className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-gray-600"
         >
-          <Icon name="X" size={18} />
+          <Icon name="X" size={16} />
         </button>
       </div>
 
       {/* Search */}
-      <div className="p-3 border-b border-gray-100">
+      <div className="p-3 border-b border-gray-100 flex-shrink-0">
         <div className="relative">
           <Icon name="Search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
@@ -95,7 +94,7 @@ export const FloatingNodePalette: React.FC<FloatingNodePaletteProps> = ({
             placeholder="搜索节点..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-colors"
           />
         </div>
       </div>
@@ -103,15 +102,15 @@ export const FloatingNodePalette: React.FC<FloatingNodePaletteProps> = ({
       {/* Node Categories */}
       <div className="flex-1 overflow-y-auto p-2">
         {filteredCategories.map(category => (
-          <div key={category.id} className="mb-2">
+          <div key={category.id} className="mb-1">
             <button
               onClick={() => toggleCategory(category.id)}
               className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
             >
               <span className="flex items-center gap-2">
-                <Icon name={category.icon} size={16} className="text-gray-500" />
+                <Icon name={category.icon} size={16} className="text-gray-400" />
                 <span>{category.name}</span>
-                <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
+                <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-md">
                   {category.nodes.length}
                 </span>
               </span>
@@ -123,7 +122,7 @@ export const FloatingNodePalette: React.FC<FloatingNodePaletteProps> = ({
             </button>
 
             {expandedCategories.includes(category.id) && (
-              <div className="mt-1 space-y-1 ml-2">
+              <div className="mt-1 space-y-0.5 ml-1">
                 {category.nodes.map(node => (
                   <div
                     key={`${node.type}-${node.label}`}
@@ -131,10 +130,9 @@ export const FloatingNodePalette: React.FC<FloatingNodePaletteProps> = ({
                     onDragStart={(e) => handleDragStart(e, node)}
                     onDragEnd={handleDragEnd}
                     onDoubleClick={() => onNodeDoubleClick?.(node)}
-                    className={`flex items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-gray-50 hover:bg-indigo-50 hover:text-indigo-700 rounded-lg cursor-grab active:cursor-grabbing transition-all ${
+                    className={`flex items-center gap-2.5 px-3 py-2 text-sm text-gray-600 bg-gray-50/50 hover:bg-primary-50 hover:text-primary-700 rounded-lg cursor-grab active:cursor-grabbing transition-all border border-transparent hover:border-primary-200 ${
                       draggingNode === `${node.type}-${node.label}` ? 'opacity-50 scale-95' : ''
                     }`}
-                    style={{ borderLeft: `3px solid ${node.color}` }}
                   >
                     <div 
                       className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm"
@@ -143,7 +141,7 @@ export const FloatingNodePalette: React.FC<FloatingNodePaletteProps> = ({
                       <Icon name={node.icon} size={14} color="white" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">{node.label}</div>
+                      <div className="font-medium truncate text-gray-800">{node.label}</div>
                       <div className="text-xs text-gray-400 truncate">{node.description}</div>
                     </div>
                   </div>
@@ -155,8 +153,8 @@ export const FloatingNodePalette: React.FC<FloatingNodePaletteProps> = ({
       </div>
 
       {/* Footer */}
-      <div className="p-3 border-t border-gray-100 bg-gray-50 rounded-b-xl">
-        <p className="text-xs text-gray-500 text-center flex items-center justify-center gap-1">
+      <div className="p-3 border-t border-gray-100 bg-gray-50/50 flex-shrink-0">
+        <p className="text-xs text-gray-500 text-center flex items-center justify-center gap-1.5">
           <Icon name="MousePointer" size={12} />
           拖拽到画布 · 双击快速添加
         </p>

@@ -3,7 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { Icon } from './Icon';
 
-export const UserMenu: React.FC = () => {
+interface UserMenuProps {
+  compact?: boolean;
+}
+
+export const UserMenu: React.FC<UserMenuProps> = ({ compact = false }) => {
   const navigate = useNavigate();
   const { user, isAuthenticated, logout } = useAuthStore();
   const [isOpen, setIsOpen] = useState(false);
@@ -24,10 +28,15 @@ export const UserMenu: React.FC = () => {
     return (
       <button
         onClick={() => navigate('/auth')}
-        className="flex items-center gap-2 px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors"
+        className={`flex items-center justify-center gap-2 rounded-lg transition-colors ${
+          compact 
+            ? 'p-2.5 text-gray-400 hover:text-gray-200 hover:bg-white/[0.06]'
+            : 'px-4 py-2 bg-primary-600 text-white hover:bg-primary-700'
+        }`}
+        title={compact ? '登录' : undefined}
       >
-        <Icon name="LogIn" size={18} />
-        登录
+        <Icon name="LogIn" size={compact ? 20 : 18} />
+        {!compact && '登录'}
       </button>
     );
   }
@@ -51,36 +60,50 @@ export const UserMenu: React.FC = () => {
     <div className="relative" ref={menuRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+        className={`flex items-center gap-2 rounded-lg transition-colors ${
+          compact 
+            ? 'p-1.5 hover:bg-white/[0.06]' 
+            : 'p-1.5 hover:bg-white/[0.06] w-full'
+        }`}
+        title={compact ? user.name : undefined}
       >
         {user.avatar ? (
           <img
             src={user.avatar}
             alt={user.name}
-            className="w-8 h-8 rounded-full object-cover"
+            className={`rounded-full object-cover ${compact ? 'w-8 h-8' : 'w-8 h-8'}`}
           />
         ) : (
-          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center text-white text-sm font-medium">
+          <div className={`rounded-full bg-gradient-to-br from-primary-500 to-violet-600 flex items-center justify-center text-white text-sm font-medium ${
+            compact ? 'w-8 h-8' : 'w-8 h-8'
+          }`}>
             {getInitials(user.name)}
           </div>
         )}
-        <span className="text-sm font-medium text-gray-700 hidden sm:block">
-          {user.name}
-        </span>
-        <Icon 
-          name="ChevronDown" 
-          size={16} 
-          className={`text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} 
-        />
+        {!compact && (
+          <>
+            <div className="flex-1 text-left min-w-0">
+              <p className="text-sm font-medium text-gray-200 truncate">{user.name}</p>
+              <p className="text-xs text-gray-500 truncate">{user.email}</p>
+            </div>
+            <Icon 
+              name="ChevronDown" 
+              size={16} 
+              className={`text-gray-500 transition-transform flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`} 
+            />
+          </>
+        )}
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50">
+        <div className={`absolute z-50 w-56 bg-white rounded-xl shadow-xl border border-gray-200 py-2 ${
+          compact ? 'left-full ml-2 bottom-0' : 'bottom-full mb-2 left-0'
+        }`}>
           {/* User Info */}
           <div className="px-4 py-3 border-b border-gray-100">
             <p className="text-sm font-medium text-gray-800">{user.name}</p>
             <p className="text-xs text-gray-500">{user.email}</p>
-            <span className="inline-block mt-1 px-2 py-0.5 bg-indigo-100 text-indigo-600 text-xs rounded-full">
+            <span className="inline-block mt-1.5 px-2 py-0.5 bg-primary-50 text-primary-600 text-xs font-medium rounded-full">
               {user.role === 'admin' ? '管理员' : user.role === 'manager' ? '管理者' : '用户'}
             </span>
           </div>
@@ -92,7 +115,7 @@ export const UserMenu: React.FC = () => {
                 setIsOpen(false);
                 navigate('/profile');
               }}
-              className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+              className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2.5 transition-colors"
             >
               <Icon name="User" size={16} className="text-gray-400" />
               个人资料
@@ -102,7 +125,7 @@ export const UserMenu: React.FC = () => {
                 setIsOpen(false);
                 navigate('/settings');
               }}
-              className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+              className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2.5 transition-colors"
             >
               <Icon name="Settings" size={16} className="text-gray-400" />
               设置
@@ -113,7 +136,7 @@ export const UserMenu: React.FC = () => {
           <div className="border-t border-gray-100 pt-1">
             <button
               onClick={handleLogout}
-              className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+              className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2.5 transition-colors"
             >
               <Icon name="LogOut" size={16} />
               退出登录
