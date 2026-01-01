@@ -1,0 +1,65 @@
+# Rust
+/target/
+**/*.rs.bk
+*.pdb
+Cargo.lock
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Database
+*.db
+*.sqlite
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+env/
+.venv
+
+# Node
+node_modules/
+dist/
+build/
+.next/
+out/
+
+# Docker
+docker-compose.override.yml
+
+# Uploads
+uploads/
+
+# Screenshots and temp docs
+*.png
+*_REPORT.md
+*_SUMMARY.md
+*_SPEC.md
+*_STATUS.md
+*_CHECKLIST.md
+*_NOTES.md
+*_PLAN*.md
+*_UX.md
+QUICK_START*.md
+README_*.md
+
+# Nested git repos
+crates/ai-service/.git/
