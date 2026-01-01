@@ -12,6 +12,7 @@ interface FloatingSidebarProps {
   isNodePaletteOpen: boolean;
   hasUnsavedChanges?: boolean;
   onSaveWorkflow?: () => void;
+  onExpandChange?: (expanded: boolean) => void;
 }
 
 export const FloatingSidebar: React.FC<FloatingSidebarProps> = ({
@@ -24,9 +25,15 @@ export const FloatingSidebar: React.FC<FloatingSidebarProps> = ({
   isNodePaletteOpen,
   hasUnsavedChanges = false,
   onSaveWorkflow,
+  onExpandChange,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState<Workflow | null>(null);
+
+  const handleExpand = (expanded: boolean) => {
+    setIsExpanded(expanded);
+    onExpandChange?.(expanded);
+  };
 
   const handleWorkflowClick = (workflow: Workflow) => {
     if (workflow.id === currentWorkflowId) return;
@@ -55,8 +62,8 @@ export const FloatingSidebar: React.FC<FloatingSidebarProps> = ({
         className={`fixed left-4 top-20 z-40 transition-all duration-300 ${
           isExpanded ? 'w-64' : 'w-12'
         }`}
-        onMouseEnter={() => setIsExpanded(true)}
-        onMouseLeave={() => setIsExpanded(false)}
+        onMouseEnter={() => handleExpand(true)}
+        onMouseLeave={() => handleExpand(false)}
       >
         <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
           {/* Toggle Node Palette Button */}

@@ -45,6 +45,7 @@ const WorkflowEditor: React.FC = () => {
   const [showNewModal, setShowNewModal] = useState(false);
   const [showAISettings, setShowAISettings] = useState(false);
   const [showNodePalette, setShowNodePalette] = useState(true);
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [lastSavedState, setLastSavedState] = useState<string | null>(null);
   
@@ -179,6 +180,7 @@ const WorkflowEditor: React.FC = () => {
           isNodePaletteOpen={showNodePalette}
           hasUnsavedChanges={hasUnsavedChanges}
           onSaveWorkflow={handleSave}
+          onExpandChange={setSidebarExpanded}
         />
 
         {/* Floating Node Palette */}
@@ -187,6 +189,7 @@ const WorkflowEditor: React.FC = () => {
           onClose={() => setShowNodePalette(false)}
           onDragStart={handleDragStart}
           onNodeDoubleClick={handleNodeDoubleClick}
+          sidebarExpanded={sidebarExpanded}
         />
         
         {/* Canvas - Full Width */}
