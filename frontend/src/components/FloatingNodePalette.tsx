@@ -8,7 +8,6 @@ interface FloatingNodePaletteProps {
   onClose: () => void;
   onDragStart: (event: React.DragEvent, template: NodeTemplate) => void;
   onNodeDoubleClick?: (template: NodeTemplate) => void;
-  sidebarExpanded?: boolean;
 }
 
 export const FloatingNodePalette: React.FC<FloatingNodePaletteProps> = ({ 
@@ -16,7 +15,6 @@ export const FloatingNodePalette: React.FC<FloatingNodePaletteProps> = ({
   onClose, 
   onDragStart, 
   onNodeDoubleClick,
-  sidebarExpanded = false,
 }) => {
   const [expandedCategories, setExpandedCategories] = useState<string[]>(
     nodeCategories.map(c => c.id)
@@ -73,8 +71,7 @@ export const FloatingNodePalette: React.FC<FloatingNodePaletteProps> = ({
 
   return (
     <div 
-      className="fixed top-20 z-30 w-72 max-h-[calc(100vh-120px)] bg-white rounded-xl shadow-xl border border-gray-200 flex flex-col animate-in slide-in-from-left-2 duration-200 transition-all"
-      style={{ left: sidebarExpanded ? '284px' : '76px' }}
+      className="absolute left-4 top-4 z-30 w-72 max-h-[calc(100%-32px)] bg-white rounded-xl shadow-xl border border-gray-200 flex flex-col animate-in slide-in-from-left-2 duration-200"
     >  {/* Header */}
       <div className="p-4 border-b border-gray-200 flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">

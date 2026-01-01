@@ -4,6 +4,7 @@ interface LogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
   showText?: boolean;
   className?: string;
+  variant?: 'default' | 'light';
 }
 
 const sizeMap = {
@@ -16,7 +17,8 @@ const sizeMap = {
 export const Logo: React.FC<LogoProps> = ({ 
   size = 'md', 
   showText = true,
-  className = '' 
+  className = '',
+  variant = 'default',
 }) => {
   const { icon, text, gap } = sizeMap[size];
   
@@ -54,7 +56,11 @@ export const Logo: React.FC<LogoProps> = ({
       </svg>
       
       {showText && (
-        <span className={`font-bold ${text} bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent`}>
+        <span className={`font-bold ${text} ${
+          variant === 'light' 
+            ? 'text-white' 
+            : 'bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent'
+        }`}>
           Flowvex
         </span>
       )}

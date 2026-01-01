@@ -1,46 +1,32 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { FloatingNodePalette } from '../components/FloatingNodePalette';
-import { FloatingSidebar } from '../components/FloatingSidebar';
 import { WorkflowCanvas } from '../components/WorkflowCanvas';
 import { NodeConfigPanel } from '../components/NodeConfigPanel';
-import { NewWorkflowModal } from '../components/NewWorkflowModal';
 import { Icon } from '../components/Icon';
 import { useWorkflowStore } from '../stores/workflowStore';
 import { NodeTemplate } from '../types/workflow';
 import { toast } from '../components/common/Toast';
 
 export const WorkflowEditor: React.FC = () => {
-  const navigate = useNavigate();
-  const [showNewModal, setShowNewModal] = useState(false);
   const [showNodePalette, setShowNodePalette] = useState(true);
-  const [sidebarExpanded, setSidebarExpanded] = useState(false);
   
   const {
     workflow,
-    workflows,
     selectedNodeId,
     loadWorkflows,
-    setWorkflow,
-    createWorkflow,
     saveWorkflow,
-    deleteWorkflow,
     selectNode,
     undo,
     redo,
+    isExecuting,
+    stopExecution,
+    runWorkflow,
   } = useWorkflowStore();
 
   // Load workflows on mount
   useEffect(() => {
     loadWorkflows();
   }, [loadWorkflows]);
-
-  // 如果没有工作流，跳转到主页
-  useEffect(() => {
-    if (!workflow && workflows.length === 0) {
-      navigate('/');
-    }
-  }, [workflow, workflows, navigate]);
 
   const handleDragStart = useCallback((event: React.DragEvent, template: NodeTemplate) => {
     event.dataTransfer.setData('application/reactflow', JSON.stringify(template));
@@ -56,27 +42,18 @@ export const WorkflowEditor: React.FC = () => {
     selectNode(nodeId);
   }, [selectNode]);
 
-  const handleNewWorkflow = useCallback(() => {
-    setShowNewModal(true);
-  }, []);
-
-  const handleCreateWorkflow = useCallback((name: string, description?: string) => {
-    createWorkflow(name, description);
-    setShowNewModal(false);
-  }, [createWorkflow]);
-
   const handleSave = useCallback(() => {
     saveWorkflow();
     toast.success('工作流已保存');
   }, [saveWorkflow]);
 
-  const handleSwitchWorkflow = useCallback((w: any) => {
-    setWorkflow(w);
-  }, [setWorkflow]);
-
-  const handleBackToDashboard = useCallback(() => {
-    navigate('/');
-  }, [navigate]);
+  const handleRun = useCallback(async () => {
+    if (isExecuting) {
+      stopExecution();
+    } else {
+      await runWorkflow();
+    }
+  }, [isExecuting, runWorkflow, stopExecution]);
 
   const selectedNode = useMemo(() => {
     return workflow?.nodes.find(n => n.id === selectedNodeId);
@@ -103,95 +80,103 @@ export const WorkflowEditor: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [undo, redo, handleSave]);
 
+  if (!workflow) {
+    return (
+      <div className="h-full flex items-center justify-center bg-gray-100">
+        <div className="text-center">
+          <div className="w-20 h-20 mx-auto mb-4 bg-gray-200 rounded-2xl flex items-center justify-center">
+            <Icon name="MousePointerClick" size={40} className="text-gray-400" />
+          </div>
+          <h2 className="text-xl font-semibold text-gray-700 mb-2">
+            选择一个工作流
+          </h2>
+          <p className="text-gray-500">
+            从左侧选择一个工作流开始编辑
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="h-screen flex flex-col bg-gray-100">
-      {/* Editor Header */}
-      <div className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4">
-        <div className="flex items-center gap-4">
+    <div className="h-full flex flex-col bg-gray-100">
+      {/* Editor Toolbar */}
+      <div className="h-12 bg-white border-b border-gray-200 flex items-center justify-between px-4 flex-shrink-0">
+        <div className="flex items-center gap-3">
           <button
-            onClick={handleBackToDashboard}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            title="返回主页"
+            onClick={() => setShowNodePalette(!showNodePalette)}
+            className={`p-2 rounded-lg transition-colors ${
+              showNodePalette ? 'bg-indigo-100 text-indigo-600' : 'hover:bg-gray-100 text-gray-600'
+            }`}
+            title="节点面板"
           >
-            <Icon name="ArrowLeft" size={20} className="text-gray-600" />
+            <Icon name="Layers" size={18} />
           </button>
           
-          {workflow && (
-            <div className="flex items-center gap-2">
-              <Icon name="GitBranch" size={16} className="text-indigo-500" />
-              <span className="text-gray-700 font-medium">{workflow.name}</span>
-              <span className={`px-2 py-0.5 text-xs rounded-full ${
-                workflow.status === 'published' 
-                  ? 'bg-green-100 text-green-700' 
-                  : 'bg-gray-100 text-gray-500'
-              }`}>
-                {workflow.status === 'published' ? '已发布' : '草稿'}
-              </span>
-            </div>
-          )}
+          <div className="w-px h-6 bg-gray-200" />
+          
+          <div className="flex items-center gap-1">
+            <button
+              onClick={undo}
+              className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg disabled:opacity-30"
+              title="撤销 (Ctrl+Z)"
+            >
+              <Icon name="Undo2" size={18} />
+            </button>
+            <button
+              onClick={redo}
+              className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg disabled:opacity-30"
+              title="重做 (Ctrl+Y)"
+            >
+              <Icon name="Redo2" size={18} />
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             onClick={handleSave}
-            disabled={!workflow}
-            className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-md disabled:opacity-50 flex items-center gap-1"
+            className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg flex items-center gap-1.5"
           >
             <Icon name="Save" size={16} />
             保存
           </button>
+          
+          <button
+            onClick={handleRun}
+            className={`px-4 py-1.5 text-sm text-white rounded-lg flex items-center gap-1.5 ${
+              isExecuting 
+                ? 'bg-red-500 hover:bg-red-600' 
+                : 'bg-indigo-600 hover:bg-indigo-700'
+            }`}
+          >
+            {isExecuting ? (
+              <>
+                <Icon name="Square" size={14} />
+                停止
+              </>
+            ) : (
+              <>
+                <Icon name="Play" size={14} />
+                运行
+              </>
+            )}
+          </button>
         </div>
       </div>
       
+      {/* Canvas Area */}
       <div className="flex-1 relative overflow-hidden">
-        {/* Floating Sidebar */}
-        <FloatingSidebar
-          workflows={workflows}
-          currentWorkflowId={workflow?.id || null}
-          onSelectWorkflow={handleSwitchWorkflow}
-          onNewWorkflow={handleNewWorkflow}
-          onDeleteWorkflow={deleteWorkflow}
-          onToggleNodePalette={() => setShowNodePalette(!showNodePalette)}
-          isNodePaletteOpen={showNodePalette}
-          onExpandChange={setSidebarExpanded}
-        />
-
         {/* Floating Node Palette */}
         <FloatingNodePalette
           isOpen={showNodePalette}
           onClose={() => setShowNodePalette(false)}
           onDragStart={handleDragStart}
           onNodeDoubleClick={handleNodeDoubleClick}
-          sidebarExpanded={sidebarExpanded}
         />
         
-        {/* Canvas - Full Width */}
-        <div className="w-full h-full">
-          {workflow ? (
-            <WorkflowCanvas onNodeSelect={handleNodeSelect} />
-          ) : (
-            <div className="h-full flex items-center justify-center">
-              <div className="text-center">
-                <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
-                  <Icon name="Rocket" size={40} color="white" />
-                </div>
-                <h2 className="text-xl font-semibold text-gray-700 mb-2">
-                  开始构建你的AI工作流
-                </h2>
-                <p className="text-gray-500 mb-4">
-                  从左侧选择一个工作流或创建新的工作流
-                </p>
-                <button
-                  onClick={handleNewWorkflow}
-                  className="px-6 py-2.5 text-sm text-white bg-indigo-500 rounded-lg hover:bg-indigo-600 flex items-center gap-2 mx-auto shadow-md hover:shadow-lg transition-all"
-                >
-                  <Icon name="Plus" size={18} />
-                  新建工作流
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+        {/* Canvas */}
+        <WorkflowCanvas onNodeSelect={handleNodeSelect} />
       </div>
 
       {/* Floating Config Panel */}
@@ -199,13 +184,6 @@ export const WorkflowEditor: React.FC = () => {
         <NodeConfigPanel
           node={selectedNode}
           onClose={() => selectNode(null)}
-        />
-      )}
-
-      {showNewModal && (
-        <NewWorkflowModal
-          onClose={() => setShowNewModal(false)}
-          onCreate={handleCreateWorkflow}
         />
       )}
     </div>

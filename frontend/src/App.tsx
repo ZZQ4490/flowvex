@@ -1,14 +1,15 @@
 import { useEffect, useState, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { Header } from './components/Header';
+import { Sidebar } from './components/Sidebar';
+import { NewWorkflowModal } from './components/NewWorkflowModal';
 import { AISettingsModal } from './components/settings/AISettingsModal';
 import { ToastContainer } from './components/common/Toast';
+import { Icon } from './components/Icon';
 import { useAuthStore } from './stores/authStore';
 import { useWorkflowStore } from './stores/workflowStore';
 import { AuthPage } from './pages/AuthPage';
 import { Dashboard } from './pages/Dashboard';
 import { WorkflowEditor } from './pages/WorkflowEditor';
-import { Icon } from './components/Icon';
 
 // Protected route wrapper
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -36,35 +37,31 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   return <>{children}</>;
 };
 
-// Main app component with header
+// Main layout with sidebar
 const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [showAISettings, setShowAISettings] = useState(false);
-  const { startExecution, stopExecution, isExecuting, saveWorkflow } = useWorkflowStore();
+  const [showNewModal, setShowNewModal] = useState(false);
+  const { createWorkflow } = useWorkflowStore();
 
-  const handleRun = useCallback(() => {
-    if (isExecuting) {
-      stopExecution();
-    } else {
-      startExecution();
-      setTimeout(() => stopExecution(), 3000);
-    }
-  }, [isExecuting, startExecution, stopExecution]);
+  const handleCreateWorkflow = useCallback((name: string, description?: string) => {
+    createWorkflow(name, description);
+    setShowNewModal(false);
+  }, [createWorkflow]);
 
   return (
-    <div className="h-screen flex flex-col">
-      <Header
-        onNewWorkflow={() => {}}
-        onSave={saveWorkflow}
-        onRun={handleRun}
-        onOpenSettings={() => setShowAISettings(true)}
-      />
+    <div className="h-screen flex bg-gray-100">
+      {/* Fixed Sidebar */}
+      <Sidebar onNewWorkflow={() => setShowNewModal(true)} />
       
-      <div className="flex-1 overflow-hidden">
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col min-w-0">
         {children}
       </div>
 
-      {showAISettings && (
-        <AISettingsModal onClose={() => setShowAISettings(false)} />
+      {showNewModal && (
+        <NewWorkflowModal
+          onClose={() => setShowNewModal(false)}
+          onCreate={handleCreateWorkflow}
+        />
       )}
     </div>
   );
@@ -90,7 +87,9 @@ function App() {
           path="/editor"
           element={
             <ProtectedRoute>
-              <WorkflowEditor />
+              <MainLayout>
+                <WorkflowEditor />
+              </MainLayout>
             </ProtectedRoute>
           }
         />
