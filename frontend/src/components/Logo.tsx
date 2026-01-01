@@ -8,10 +8,10 @@ interface LogoProps {
 }
 
 const sizeMap = {
-  sm: { icon: 24, text: 'text-sm', gap: 'gap-1.5' },
-  md: { icon: 32, text: 'text-lg', gap: 'gap-2' },
-  lg: { icon: 48, text: 'text-2xl', gap: 'gap-3' },
-  xl: { icon: 64, text: 'text-3xl', gap: 'gap-4' },
+  sm: { icon: 20, text: 'text-xs', gap: 'gap-1.5' },
+  md: { icon: 28, text: 'text-sm', gap: 'gap-2' },
+  lg: { icon: 40, text: 'text-xl', gap: 'gap-2.5' },
+  xl: { icon: 56, text: 'text-2xl', gap: 'gap-3' },
 };
 
 export const Logo: React.FC<LogoProps> = ({ 

@@ -1,29 +1,47 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWorkflowStore } from '../stores/workflowStore';
-import { useAuthStore } from '../stores/authStore';
 import { Icon } from '../components/Icon';
 import { Workflow } from '../types/workflow';
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { workflows, setWorkflow, createWorkflow } = useWorkflowStore();
-  const { user } = useAuthStore();
+  const { workflows, setWorkflow, createWorkflow, deleteWorkflow } = useWorkflowStore();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState<'updated' | 'name' | 'created'>('updated');
 
   // 计算统计数据
   const stats = useMemo(() => {
     const total = workflows.length;
     const published = workflows.filter(w => w.status === 'published').length;
     const totalNodes = workflows.reduce((sum, w) => sum + (w.nodes?.length || 0), 0);
-    return { total, published, totalNodes };
+    const totalEdges = workflows.reduce((sum, w) => sum + (w.edges?.length || 0), 0);
+    return { total, published, totalNodes, totalEdges };
   }, [workflows]);
 
-  // 最近的工作流
-  const recentWorkflows = useMemo(() => {
-    return [...workflows]
-      .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
-      .slice(0, 8);
-  }, [workflows]);
+  // 过滤和排序工作流
+  const filteredWorkflows = useMemo(() => {
+    let result = [...workflows];
+    
+    if (searchTerm) {
+      result = result.filter(w => 
+        w.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        w.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    result.sort((a, b) => {
+      if (sortBy === 'updated') {
+        return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+      } else if (sortBy === 'created') {
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      } else {
+        return a.name.localeCompare(b.name);
+      }
+    });
+    
+    return result;
+  }, [workflows, searchTerm, sortBy]);
 
   const handleOpenWorkflow = (workflow: Workflow) => {
     setWorkflow(workflow);
@@ -37,6 +55,15 @@ export const Dashboard: React.FC = () => {
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
+    return date.toLocaleDateString('zh-CN', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    });
+  };
+
+  const formatRelativeTime = (dateStr: string) => {
+    const date = new Date(dateStr);
     const now = new Date();
     const diff = now.getTime() - date.getTime();
     const minutes = Math.floor(diff / 60000);
@@ -44,162 +71,200 @@ export const Dashboard: React.FC = () => {
     const days = Math.floor(diff / 86400000);
     
     if (minutes < 1) return '刚刚';
-    if (minutes < 60) return `${minutes}分钟前`;
-    if (hours < 24) return `${hours}小时前`;
-    if (days < 7) return `${days}天前`;
-    return date.toLocaleDateString('zh-CN');
-  };
-
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 6) return '夜深了';
-    if (hour < 12) return '早上好';
-    if (hour < 14) return '中午好';
-    if (hour < 18) return '下午好';
-    return '晚上好';
+    if (minutes < 60) return `${minutes} 分钟前`;
+    if (hours < 24) return `${hours} 小时前`;
+    if (days < 7) return `${days} 天前`;
+    return formatDate(dateStr);
   };
 
   return (
-    <div className="h-full overflow-auto" style={{ background: 'var(--bg-secondary)' }}>
-      <div className="max-w-6xl mx-auto px-8 py-8">
-        {/* Welcome Header */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-semibold text-gray-900 mb-1">
-            {getGreeting()}{user?.name ? `，${user.name}` : ''} 👋
-          </h1>
-          <p className="text-gray-500">开始构建你的智能工作流</p>
-        </div>
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-3 gap-5 mb-8">
-          <div className="bg-white rounded-xl p-5 border border-gray-200/80 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-lg shadow-primary-500/25">
-                <Icon name="Workflow" size={24} color="white" />
-              </div>
-              <div>
-                <div className="text-3xl font-bold text-gray-900">{stats.total}</div>
-                <div className="text-sm text-gray-500">工作流</div>
-              </div>
-            </div>
+    <div className="h-full overflow-auto bg-[#1a1a1a]">
+      <div className="max-w-5xl mx-auto px-6 py-6">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-lg font-medium text-white mb-0.5">Overview</h1>
+            <p className="text-xs text-gray-500">All the workflows you have access to</p>
           </div>
-
-          <div className="bg-white rounded-xl p-5 border border-gray-200/80 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/25">
-                <Icon name="CheckCircle" size={24} color="white" />
-              </div>
-              <div>
-                <div className="text-3xl font-bold text-gray-900">{stats.published}</div>
-                <div className="text-sm text-gray-500">已发布</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl p-5 border border-gray-200/80 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-violet-600 flex items-center justify-center shadow-lg shadow-violet-500/25">
-                <Icon name="Boxes" size={24} color="white" />
-              </div>
-              <div>
-                <div className="text-3xl font-bold text-gray-900">{stats.totalNodes}</div>
-                <div className="text-sm text-gray-500">节点</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="flex gap-3 mb-8">
           <button
             onClick={handleNewWorkflow}
-            className="flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium shadow-sm shadow-primary-600/25"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#ff6d5a] text-white text-xs font-medium rounded hover:bg-[#ff5a45] transition-colors"
           >
-            <Icon name="Plus" size={18} />
-            新建工作流
-          </button>
-          <button className="flex items-center gap-2 px-5 py-2.5 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-colors font-medium">
-            <Icon name="Upload" size={18} />
-            导入
-          </button>
-          <button className="flex items-center gap-2 px-5 py-2.5 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-colors font-medium">
-            <Icon name="FileText" size={18} />
-            模板
+            Create workflow
+            <Icon name="ChevronDown" size={12} />
           </button>
         </div>
 
-        {/* Recent Workflows */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">最近工作流</h2>
-            {workflows.length > 8 && (
-              <button className="text-sm text-primary-600 hover:text-primary-700 font-medium">
-                查看全部 →
-              </button>
-            )}
+        {/* Stats Bar */}
+        <div className="bg-[#262626] rounded-lg border border-[#333] p-4 mb-6">
+          <div className="grid grid-cols-5 divide-x divide-[#333]">
+            <div className="px-4 first:pl-0">
+              <div className="text-[11px] text-gray-500 mb-1">Workflows</div>
+              <div className="text-xl font-semibold text-white">{stats.total}</div>
+            </div>
+            <div className="px-4">
+              <div className="text-[11px] text-gray-500 mb-1">Published</div>
+              <div className="text-xl font-semibold text-white">{stats.published}</div>
+            </div>
+            <div className="px-4">
+              <div className="text-[11px] text-gray-500 mb-1">Draft</div>
+              <div className="text-xl font-semibold text-white">{stats.total - stats.published}</div>
+            </div>
+            <div className="px-4">
+              <div className="text-[11px] text-gray-500 mb-1">Total nodes</div>
+              <div className="text-xl font-semibold text-white">{stats.totalNodes}</div>
+            </div>
+            <div className="px-4">
+              <div className="text-[11px] text-gray-500 mb-1">Connections</div>
+              <div className="text-xl font-semibold text-white">{stats.totalEdges}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex items-center gap-6 border-b border-[#333] mb-4">
+          <button className="pb-2 text-xs font-medium text-[#ff6d5a] border-b-2 border-[#ff6d5a]">
+            Workflows
+          </button>
+          <button className="pb-2 text-xs font-medium text-gray-500 hover:text-gray-300 transition-colors">
+            Templates
+          </button>
+          <button className="pb-2 text-xs font-medium text-gray-500 hover:text-gray-300 transition-colors">
+            Executions
+          </button>
+        </div>
+
+        {/* Search & Filter Bar */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="relative">
+            <Icon name="Search" size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500" />
+            <input
+              type="text"
+              placeholder="Search"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-48 pl-8 pr-3 py-1.5 text-xs bg-[#262626] border border-[#333] rounded text-white placeholder-gray-500 focus:outline-none focus:border-[#444]"
+            />
           </div>
           
-          {recentWorkflows.length === 0 ? (
-            <div className="bg-white rounded-xl border border-gray-200/80 p-16 text-center shadow-sm">
-              <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-2xl flex items-center justify-center">
-                <Icon name="Inbox" size={32} className="text-gray-400" />
+          <div className="flex items-center gap-2">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              className="px-2 py-1.5 text-xs bg-[#262626] border border-[#333] rounded text-gray-300 focus:outline-none focus:border-[#444]"
+            >
+              <option value="updated">Sort by last updated</option>
+              <option value="created">Sort by created</option>
+              <option value="name">Sort by name</option>
+            </select>
+            <button className="p-1.5 text-gray-500 hover:text-gray-300 hover:bg-[#333] rounded transition-colors">
+              <Icon name="Filter" size={14} />
+            </button>
+            <button className="p-1.5 text-gray-500 hover:text-gray-300 hover:bg-[#333] rounded transition-colors">
+              <Icon name="LayoutGrid" size={14} />
+            </button>
+          </div>
+        </div>
+
+        {/* Workflow List */}
+        <div className="space-y-2">
+          {filteredWorkflows.length === 0 ? (
+            <div className="bg-[#262626] rounded-lg border border-[#333] p-12 text-center">
+              <div className="w-12 h-12 mx-auto mb-3 bg-[#333] rounded-lg flex items-center justify-center">
+                <Icon name="Inbox" size={24} className="text-gray-600" />
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">还没有工作流</h3>
-              <p className="text-gray-500 mb-6">创建你的第一个工作流，开始自动化之旅</p>
-              <button
-                onClick={handleNewWorkflow}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
-              >
-                <Icon name="Plus" size={18} />
-                创建工作流
-              </button>
+              <p className="text-xs text-gray-500 mb-3">
+                {searchTerm ? 'No workflows found' : 'No workflows yet'}
+              </p>
+              {!searchTerm && (
+                <button
+                  onClick={handleNewWorkflow}
+                  className="text-xs text-[#ff6d5a] hover:text-[#ff5a45] transition-colors"
+                >
+                  Create your first workflow →
+                </button>
+              )}
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-4">
-              {recentWorkflows.map(workflow => (
-                <div
-                  key={workflow.id}
-                  onClick={() => handleOpenWorkflow(workflow)}
-                  className="bg-white rounded-xl border border-gray-200/80 p-5 hover:border-primary-300 hover:shadow-md transition-all cursor-pointer group"
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500 to-violet-500 flex items-center justify-center flex-shrink-0 shadow-sm">
-                      <Icon name="Workflow" size={20} color="white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold text-gray-900 truncate group-hover:text-primary-600 transition-colors">
-                          {workflow.name}
-                        </h3>
-                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full flex-shrink-0 ${
-                          workflow.status === 'published'
-                            ? 'bg-emerald-100 text-emerald-700'
-                            : 'bg-gray-100 text-gray-600'
-                        }`}>
-                          {workflow.status === 'published' ? '已发布' : '草稿'}
-                        </span>
-                      </div>
-                      {workflow.description && (
-                        <p className="text-sm text-gray-500 truncate mb-2">{workflow.description}</p>
-                      )}
-                      <div className="flex items-center gap-4 text-xs text-gray-400">
-                        <span className="flex items-center gap-1">
-                          <Icon name="Boxes" size={12} />
-                          {workflow.nodes?.length || 0} 节点
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Icon name="Clock" size={12} />
-                          {formatDate(workflow.updated_at)}
-                        </span>
+            filteredWorkflows.map(workflow => (
+              <div
+                key={workflow.id}
+                onClick={() => handleOpenWorkflow(workflow)}
+                className="bg-[#262626] rounded-lg border border-[#333] px-4 py-3 hover:border-[#444] hover:bg-[#2a2a2a] transition-all cursor-pointer group"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                      workflow.status === 'published' ? 'bg-emerald-500' : 'bg-gray-600'
+                    }`} />
+                    <div className="min-w-0">
+                      <h3 className="text-sm font-medium text-white truncate group-hover:text-[#ff6d5a] transition-colors">
+                        {workflow.name}
+                      </h3>
+                      <div className="flex items-center gap-2 text-[11px] text-gray-500">
+                        <span>Last updated {formatRelativeTime(workflow.updated_at)}</span>
+                        <span>·</span>
+                        <span>Created {formatDate(workflow.created_at)}</span>
                       </div>
                     </div>
-                    <Icon name="ChevronRight" size={18} className="text-gray-300 group-hover:text-primary-500 transition-colors flex-shrink-0 mt-1" />
+                  </div>
+                  
+                  <div className="flex items-center gap-3">
+                    <span className="text-[11px] text-gray-500">
+                      {workflow.nodes?.length || 0} nodes
+                    </span>
+                    <span className={`px-2 py-0.5 text-[10px] font-medium rounded ${
+                      workflow.status === 'published'
+                        ? 'bg-emerald-500/10 text-emerald-400'
+                        : 'bg-gray-500/10 text-gray-400'
+                    }`}>
+                      {workflow.status === 'published' ? 'Published' : 'Draft'}
+                    </span>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // TODO: duplicate
+                        }}
+                        className="p-1 text-gray-500 hover:text-gray-300 hover:bg-[#333] rounded transition-colors"
+                      >
+                        <Icon name="Copy" size={14} />
+                      </button>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteWorkflow(workflow.id);
+                        }}
+                        className="p-1 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
+                      >
+                        <Icon name="Trash2" size={14} />
+                      </button>
+                      <button className="p-1 text-gray-500 hover:text-gray-300 hover:bg-[#333] rounded transition-colors">
+                        <Icon name="MoreVertical" size={14} />
+                      </button>
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))
           )}
         </div>
+
+        {/* Pagination */}
+        {filteredWorkflows.length > 0 && (
+          <div className="flex items-center justify-end gap-4 mt-4 text-xs text-gray-500">
+            <span>Total {filteredWorkflows.length}</span>
+            <div className="flex items-center gap-1">
+              <button className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#333] transition-colors">
+                <Icon name="ChevronLeft" size={14} />
+              </button>
+              <span className="px-2 py-1 bg-[#ff6d5a] text-white rounded text-[11px]">1</span>
+              <button className="w-6 h-6 flex items-center justify-center rounded hover:bg-[#333] transition-colors">
+                <Icon name="ChevronRight" size={14} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
